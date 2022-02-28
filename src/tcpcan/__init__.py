@@ -84,6 +84,9 @@ class _BridgeInstance:
             hdr = self.tcp_socket.recv(_HEADER_LEN)
         except ConnectionResetError:
             self._shutdown()
+        except OSError as e:
+            _LOGGER.exception(e)
+            self._shutdown()
 
         if len(hdr) < _HEADER_LEN:
             self._shutdown()
@@ -166,7 +169,11 @@ class _BridgeInstance:
             # Drop can frames until version is negotiated.
             return
 
-        can_frame = self.can_socket.recv(1024)
+        try:
+            can_frame = self.can_socket.recv(1024)
+        except OSError as e:
+            _LOGGER.exception(e)
+            self._shutdown()
 
         _LOGGER.debug("Got %d bytes on CAN" % len(can_frame))
 
