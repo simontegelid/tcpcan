@@ -82,10 +82,8 @@ class _BridgeInstance:
     def _recv_message(self):
         try:
             hdr = self.tcp_socket.recv(_HEADER_LEN)
-        except ConnectionResetError:
-            self._shutdown()
-        except OSError as e:
-            _LOGGER.exception(e)
+        except (TimeoutError, ConnectionResetError, OSError) as e:
+            _LOGGER.error("TCP exception: %s", str(e))
             self._shutdown()
 
         if len(hdr) < _HEADER_LEN:
@@ -96,6 +94,14 @@ class _BridgeInstance:
         if len(payload) < length:
             self._shutdown()
         return prefix, payload
+
+    def _send_message(self, tcp_data: bytes, ignore_errors=True):
+        try:
+            self.tcp_socket.sendall(tcp_data)
+        except Exception as e:
+            _LOGGER.error("TCP send fail: %s" % e)
+            if not ignore_errors:
+                self._shutdown()
 
     def _shutdown(self):
         _LOGGER.debug("Shutdown %s, %s", self.tcp_socket, self.can_socket)
@@ -112,7 +118,7 @@ class _BridgeInstance:
         _LOGGER.debug("Propose version: %d", version)
         self.proposed_version = version
         version_msg = self._pack_version_message(version)
-        self.tcp_socket.sendall(version_msg)
+        self._send_message(version_msg)
 
     def _tcp_reader(
         self,
@@ -150,14 +156,14 @@ class _BridgeInstance:
         prefix, payload = self._recv_message()
         _LOGGER.debug("Got %d bytes on TCP" % len(payload))
 
-        if prefix != _DATA_PREFIX:
+        if prefix == _DATA_PREFIX:
+            try:
+                self.can_socket.send(payload)
+            except Exception as e:
+                _LOGGER.error("CAN send fail: %s" % e)
+        else:
             _LOGGER.error("Got unexpected message %c", prefix)
             self._shutdown()
-
-        try:
-            self.can_socket.send(payload)
-        except Exception as e:
-            _LOGGER.error("CAN send fail: %s" % e)
 
     def _can_reader(
         self,
@@ -186,10 +192,7 @@ class _BridgeInstance:
             return
 
         tcp_data = self._pack_data_message(can_frame)
-        try:
-            self.tcp_socket.sendall(tcp_data)
-        except Exception as e:
-            _LOGGER.error("TCP send fail: %s" % e)
+        self._send_message(tcp_data)
 
 
 def _run_bridge(sel) -> bool:
