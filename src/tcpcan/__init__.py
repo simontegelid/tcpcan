@@ -41,6 +41,19 @@ class _BridgeInstance:
 
     def _prepare_bridge(self):
         self.tcp_socket.setblocking(False)
+
+        after_idle_sec = 10
+        interval_sec = 10
+        max_fails = 3
+        self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        self.tcp_socket.setsockopt(
+            socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, after_idle_sec
+        )
+        self.tcp_socket.setsockopt(
+            socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval_sec
+        )
+        self.tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, max_fails)
+
         can_socket = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
         can_socket.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FD_FRAMES, 1)
         can_socket.bind((self.canif,))
