@@ -5,9 +5,7 @@ import selectors
 import logging
 import struct
 
-_HEADER_FMT = (
-    ">cb"  # prefix char + payload len (not including len(prefix char + payload len))
-)
+_HEADER_FMT = ">cb"  # prefix char + payload len (not including len(prefix char + payload len))
 _HEADER_LEN = 2  # len(prefix char + payload len)
 
 _VERSION_PREFIX = b"v"
@@ -46,12 +44,8 @@ class _BridgeInstance:
         interval_sec = 10
         max_fails = 3
         self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        self.tcp_socket.setsockopt(
-            socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, after_idle_sec
-        )
-        self.tcp_socket.setsockopt(
-            socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval_sec
-        )
+        self.tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, after_idle_sec)
+        self.tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval_sec)
         self.tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, max_fails)
 
         can_socket = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
@@ -79,9 +73,7 @@ class _BridgeInstance:
 
     @staticmethod
     def _pack_version_message(version: int):
-        return _BridgeInstance._pack_header(_VERSION_PREFIX, 4) + struct.pack(
-            ">I", version
-        )
+        return _BridgeInstance._pack_header(_VERSION_PREFIX, 4) + struct.pack(">I", version)
 
     @staticmethod
     def _pack_data_message(data: bytes):
@@ -273,18 +265,14 @@ def main():
     parser.add_argument("canif", help="SocketCAN interface")
     parser.add_argument("--host", default="localhost", help="TCP host")
     parser.add_argument("--port", default=20010, type=int, help="TCP port")
-    parser.add_argument(
-        "--serve", action="store_true", default=False, help="Run as server"
-    )
+    parser.add_argument("--serve", action="store_true", default=False, help="Run as server")
     parser.add_argument(
         "--no-retry",
         action="store_true",
         default=False,
         help="Do not retry if client connection fail",
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", default=False, help="Verbose output"
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose output")
 
     args = parser.parse_args()
 
