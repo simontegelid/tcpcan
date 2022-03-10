@@ -5,7 +5,7 @@ import selectors
 import logging
 import struct
 
-_HEADER_FMT = ">cb"  # prefix char + payload len (not including len(prefix char + payload len))
+_HEADER_FMT = ">cB"  # prefix char + payload len (not including len(prefix char + payload len))
 _HEADER_LEN = 2  # len(prefix char + payload len)
 
 _VERSION_PREFIX = b"v"
@@ -134,7 +134,7 @@ class _BridgeInstance:
         if self.agreed_version is None:
             prefix, payload = self._recv_message()
             if prefix != _VERSION_PREFIX:
-                _LOGGER.warning("Expected version message, got '%c'", prefix.decode())
+                _LOGGER.warning("Expected version message, got 0x%s", prefix.hex())
                 self._shutdown()
 
             version = self._unpack_version_payload(payload)
@@ -167,7 +167,7 @@ class _BridgeInstance:
             except Exception as e:
                 _LOGGER.error("CAN send fail: %s" % e)
         else:
-            _LOGGER.error("Got unexpected message %c", prefix)
+            _LOGGER.error("Got unexpected message 0x%s", prefix.hex())
             self._shutdown()
 
     def _can_reader(
@@ -242,8 +242,8 @@ def _start(host: str, port: int, canif: str, serve: bool, no_retry: bool):
                 try:
                     _LOGGER.debug("Connecting to %s:%d" % (host, port))
                     tcp_socket.connect((host, port))
-                except ConnectionRefusedError:
-                    _LOGGER.error("Connection refused")
+                except OSError as e:  # OSError is base for several socket errors, so just handle that
+                    _LOGGER.error("Connect error: %s", str(e))
                 else:
                     _LOGGER.info("Connected to %s:%d" % (host, port))
                     b = _BridgeInstance(sel, tcp_socket, canif)
